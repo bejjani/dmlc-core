@@ -116,8 +116,8 @@ def yarn_submit(args, nworker, nserver, pass_env):
 
     thread = Thread(name="Yarn Application Master",
                     target=run, args=())
-    #thread.setDaemon(True)
     thread.start()
+    thread.join()
     return thread
 
 

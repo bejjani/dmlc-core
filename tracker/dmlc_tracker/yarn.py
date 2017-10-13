@@ -43,18 +43,10 @@ def yarn_submit(args, nworker, nserver, pass_env):
         subprocess.check_call(cmd, shell=True, env=os.environ)
         assert os.path.exists(YARN_JAR_PATH), "failed to build dmlc-yarn.jar, try it manually"
 
-    # detect hadoop version
-    (out, _) = subprocess.Popen('%s version' % hadoop_binary,
-                                shell=True, stdout=subprocess.PIPE).communicate()
-    out = out.split('\n')[0].split()
-    assert out[0] == 'Hadoop', 'cannot parse hadoop version string'
-    hadoop_version = int(out[1].split('.')[0])
-    (classpath, _) = subprocess.Popen('%s classpath' % hadoop_binary,
-                                      shell=True, stdout=subprocess.PIPE).communicate()
+    # get hadoop classpath
+    logging.debug("Getting Hadoop classpath")
+    classpath = subprocess.check_output((hadoop_binary, 'classpath'))
     classpath = classpath.strip()
-
-    if hadoop_version < 2:
-        raise RuntimeError('Hadoop Version is %s, dmlc_yarn will need Yarn(Hadoop 2.0)' % out[1])
 
     fset, new_command = opts.get_cache_file_set(args)
     fset.add(YARN_JAR_PATH)

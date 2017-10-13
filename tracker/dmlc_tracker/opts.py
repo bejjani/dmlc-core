@@ -3,6 +3,7 @@
 import os
 import argparse
 
+
 def get_cache_file_set(args):
     """Get the list of files to be cached.
 
@@ -107,12 +108,11 @@ def get_opts(args=None):
                         help=('The file contains the list of hostnames, needed for MPI and ssh.'))
     parser.add_argument('--sge-log-dir', default=None, type=str,
                         help=('Log directory of SGD jobs, only needed in SGE mode.'))
-    parser.add_argument(
-        '--auto-file-cache', default=True, type=bool,
-        help=('Automatically cache files appeared in the command line' +
-              'to local executor folder.' +
-              ' This will also cause rewritten of all the file names in the command,' +
-              ' e.g. `../../kmeans ../kmeans.conf` will be rewritten to `./kmeans kmeans.conf`'))
+    parser.add_argument('--auto-file-cache', default=True, type=bool,
+                        help=('Automatically cache files appeared in the command line' +
+                              'to local executor folder.' +
+                              ' This will also cause rewritten of all the file names in the command,' +
+                              ' e.g. `../../kmeans ../kmeans.conf` will be rewritten to `./kmeans kmeans.conf`'))
     parser.add_argument('--files', default=[], action='append',
                         help=('The cached file list which will be copied to local environment,' +
                               ' You may need this option to cache additional files.' +
@@ -137,7 +137,7 @@ def get_opts(args=None):
                               'You can use this option to ship customized libstdc++' +
                               ' library to the workers.'))
     parser.add_argument('--sync-dst-dir', type=str,
-                        help = 'if specificed, it will sync the current \
+                        help='if specificed, it will sync the current \
                         directory into remote machines\'s SYNC_DST_DIR')
     parser.add_argument('command', nargs='+',
                         help='Command to be launched')
@@ -147,6 +147,12 @@ def get_opts(args=None):
     parser.add_argument('--slurm-server-nodes', default=None, type=int,
                         help=('Number of nodes on which parameter servers are run. Used only in SLURM mode.' +
                               'If not explicitly set, it defaults to number of parameter servers.'))
+    parser.add_argument('--hadoop-home', default=None, type=str,
+                        help=('HADOOP_HOME'))
+    parser.add_argument('--hadoop-hdfs-home', default=None, type=str,
+                        help=('HADOOP_HDFS_HOME'))
+    parser.add_argument('--ps-verbose', default=1, type=int,
+                        help=('Parameter Server verbosity [1,2]'))
     (args, unknown) = parser.parse_known_args(args)
     args.command += unknown
 

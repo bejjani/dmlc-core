@@ -21,12 +21,15 @@ import time
 import logging
 from threading import Thread
 
+
 class ExSocket(object):
     """
     Extension of socket to handle recv and send of special data
     """
+
     def __init__(self, sock):
         self.sock = sock
+
     def recvall(self, nbytes):
         res = []
         nread = 0
@@ -35,25 +38,33 @@ class ExSocket(object):
             nread += len(chunk)
             res.append(chunk)
         return b''.join(res)
+
     def recvint(self):
         return struct.unpack('@i', self.recvall(4))[0]
+
     def sendint(self, n):
         self.sock.sendall(struct.pack('@i', n))
+
     def sendstr(self, s):
         self.sendint(len(s))
         self.sock.sendall(s.encode())
+
     def recvstr(self):
         slen = self.recvint()
         return self.recvall(slen).decode()
 
+
 # magic number used to verify existence of data
 kMagic = 0xff99
+
 
 def get_some_ip(host):
     return socket.getaddrinfo(host, None)[0][4][0]
 
+
 def get_family(addr):
     return socket.getaddrinfo(addr, None)[0][0]
+
 
 class SlaveEntry(object):
     def __init__(self, sock, s_addr):
@@ -134,10 +145,12 @@ class SlaveEntry(object):
             self.wait_accept = len(badset) - len(conset)
             return rmset
 
+
 class RabitTracker(object):
     """
     tracker for rabit
     """
+
     def __init__(self, hostIP, nslave, port=9091, port_end=9999):
         sock = socket.socket(get_family(hostIP), socket.SOCK_STREAM)
         for port in range(port, port_end):
@@ -231,7 +244,7 @@ class RabitTracker(object):
         """
         tree_map, parent_map = self.get_tree(nslave)
         ring_map = self.get_ring(tree_map, parent_map)
-        rmap = {0 : 0}
+        rmap = {0: 0}
         k = 0
         for i in range(nslave - 1):
             k = ring_map[k][1]
@@ -322,6 +335,7 @@ class RabitTracker(object):
     def start(self, nslave):
         def run():
             self.accept_slaves(nslave)
+
         self.thread = Thread(target=run, args=())
         self.thread.setDaemon(True)
         self.thread.start()
@@ -333,10 +347,12 @@ class RabitTracker(object):
     def alive(self):
         return self.thread.isAlive()
 
+
 class PSTracker(object):
     """
     Tracker module for PS
     """
+
     def __init__(self, hostIP, cmd, port=9091, port_end=9999, envs=None):
         """
         Starts the PS scheduler
@@ -411,8 +427,8 @@ def submit(nworker, nserver, fun_submit, hostIP='auto', pscmd=None):
     if nserver == 0:
         pscmd = None
 
-    envs = {'DMLC_NUM_WORKER' : nworker,
-            'DMLC_NUM_SERVER' : nserver}
+    envs = {'DMLC_NUM_WORKER': nworker,
+            'DMLC_NUM_SERVER': nserver}
     hostIP = get_host_ip(hostIP)
 
     if nserver == 0:
@@ -420,17 +436,13 @@ def submit(nworker, nserver, fun_submit, hostIP='auto', pscmd=None):
         envs.update(rabit.slave_envs())
         rabit.start(nworker)
         if rabit.alive():
-           fun_submit(nworker, nserver, envs) 
+            fun_submit(nworker, nserver, envs)
     else:
         pserver = PSTracker(hostIP=hostIP, cmd=pscmd, envs=envs)
         envs.update(pserver.slave_envs())
         if pserver.alive():
             fun_submit(nworker, nserver, envs)
 
-    if nserver == 0:
-        rabit.join()
-    else:
-        pserver.join()
 
 def start_rabit_tracker(args):
     """Standalone function to start rabit tracker.
@@ -439,8 +451,8 @@ def start_rabit_tracker(args):
     ----------
     args: arguments to start the rabit tracker.
     """
-    envs = {'DMLC_NUM_WORKER' : args.num_workers,
-            'DMLC_NUM_SERVER' : args.num_servers}
+    envs = {'DMLC_NUM_WORKER': args.num_workers,
+            'DMLC_NUM_SERVER': args.num_servers}
     rabit = RabitTracker(hostIP=get_host_ip(args.host_ip), nslave=args.num_workers)
     envs.update(rabit.slave_envs())
     rabit.start(args.num_workers)
@@ -482,6 +494,7 @@ def main():
         start_rabit_tracker(args)
     else:
         raise RuntimeError("Do not yet support start ps tracker in standalone mode.")
+
 
 if __name__ == "__main__":
     main()

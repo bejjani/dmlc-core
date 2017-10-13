@@ -13,6 +13,7 @@ from threading import Thread
 from . import opts
 from . import tracker
 
+
 def yarn_submit(args, nworker, nserver, pass_env):
     """Submission function for YARN."""
     is_windows = os.name == 'nt'
@@ -42,7 +43,7 @@ def yarn_submit(args, nworker, nserver, pass_env):
         subprocess.check_call(cmd, shell=True, env=os.environ)
         assert os.path.exists(YARN_JAR_PATH), "failed to build dmlc-yarn.jar, try it manually"
 
-    # detech hadoop version
+    # detect hadoop version
     (out, _) = subprocess.Popen('%s version' % hadoop_binary,
                                 shell=True, stdout=subprocess.PIPE).communicate()
     out = out.split('\n')[0].split()
@@ -69,7 +70,7 @@ def yarn_submit(args, nworker, nserver, pass_env):
         JAVA = 'java'
     else:
         JAVA = os.path.join(JAVA_HOME, 'bin', 'java')
-    cmd = '%s -cp %s%s%s org.apache.hadoop.yarn.dmlc.Client '\
+    cmd = '%s -cp %s%s%s org.apache.hadoop.yarn.dmlc.Client ' \
           % (JAVA, classpath, ';' if is_windows else ':', YARN_JAR_PATH)
     env = os.environ.copy()
     for k, v in pass_env.items():
@@ -107,18 +108,22 @@ def yarn_submit(args, nworker, nserver, pass_env):
     cmd += (' '.join(['./launcher.py'] + new_command))
 
     logging.debug("Submit job with %d workers and %d servers", nworker, nserver)
+
     def run():
         """internal running function."""
         logging.debug(cmd)
         subprocess.check_call(cmd, shell=True, env=env)
 
-    thread = Thread(target=run, args=())
-    thread.setDaemon(True)
+    thread = Thread(name="Yarn Application Master",
+                    target=run, args=())
+    #thread.setDaemon(True)
     thread.start()
     return thread
 
+
 def submit(args):
     submit_thread = []
+
     def yarn_submit_pass(nworker, nserver, pass_env):
         submit_thread.append(yarn_submit(args, nworker, nserver, pass_env))
 

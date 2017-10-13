@@ -1,0 +1,105 @@
+#!/usr/bin/env python
+
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+"""
+Launch a distributed job
+"""
+import sys, os
+import signal
+import logging
+from dmlc_tracker import opts
+
+
+def config_logger(args):
+    """Configure the logger according to the arguments
+    Parameters
+    ----------
+    args: argparser.Arguments
+       The arguments passed in by the user.
+    """
+    fmt = '%(asctime)s %(levelname)s (%(threadName)-9s) %(message)s'
+    if args.log_level == 'INFO':
+        level = logging.INFO
+    elif args.log_level == 'DEBUG':
+        level = logging.DEBUG
+    else:
+        raise RuntimeError("Unknown logging level %s" % args.log_level)
+
+    if args.log_file is None:
+        logging.basicConfig(format=fmt, level=level)
+    else:
+        logging.basicConfig(format=fmt, level=level, filename=args.log_file)
+        console = logging.StreamHandler()
+        console.setFormatter(logging.Formatter(fmt))
+        console.setLevel(level)
+        logging.getLogger('').addHandler(console)
+
+
+def set_env(args):
+    """Configure the env for the scheduler
+    Parameters
+    ----------
+    args: argparser.Arguments
+       The arguments passed in by the user.
+    """
+    os.environ['HADOOP_HOME'] = args.hadoop_home
+    os.environ['HADOOP_HDFS_HOME'] = args.hadoop_hdfs_home
+    os.environ['DMLC_JOB_CLUSTER'] = args.cluster
+    os.environ['PS_VERBOSE'] = str(args.ps_verbose)
+
+
+def main():
+    args = opts.get_opts()
+    config_logger(args)
+    set_env(args)
+    logging.info('job cluster: {}'.format(os.getenv('DMLC_JOB_CLUSTER')))
+
+    if args.host_file is None or args.host_file == 'None':
+        if args.cluster == 'yarn':
+            from dmlc_tracker import yarn
+            yarn.submit(args)
+        elif args.cluster == 'local':
+            from dmlc_tracker import local
+            local.submit(args)
+        elif args.cluster == 'sge':
+            from dmlc_tracker import sge
+            sge.submit(args)
+        else:
+            raise RuntimeError('Unknown submission cluster type %s' % args.cluster)
+    else:
+        if args.cluster == 'ssh':
+            from dmlc_tracker import ssh
+            ssh.submit(args)
+        elif args.cluster == 'mpi':
+            from dmlc_tracker import mpi
+            mpi.submit(args)
+        else:
+            raise RuntimeError('Unknown submission cluster type %s' % args.cluster)
+
+
+def signal_handler(signal, frame):
+    logging.info('Stop launcher')
+    sys.exit(0)
+
+
+if __name__ == '__main__':
+    fmt = '%(asctime)s %(levelname)s %(message)s'
+    logging.basicConfig(format=fmt, level=logging.INFO)
+    signal.signal(signal.SIGINT, signal_handler)
+    main()
